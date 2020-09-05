@@ -34,7 +34,7 @@ create table if not exists bucket_node_tbl
   eventId bigint unsigned not null,
   createTime datetime not null default current_timestamp,
   updateTime datetime not null default current_timestamp,
-  bucketIndex int unsigned not null,
+  bucketIndex int not null,
   lowerEdge int not null,
   upperEdge int not null,
   nodeCount int unsigned not null,

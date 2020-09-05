@@ -18,6 +18,8 @@ class MysqlController:
 
   def insertStatistic(self, report, events):
     try:
+      # if the connection was lost, then it reconnects
+      self.db.ping(reconnect=True)
       cursor = self.db.cursor()
       report_id = self.insertReport(cursor, report, events)
       for event in events:
@@ -50,7 +52,7 @@ class MysqlController:
   def insertNode(self, cursor, event_id, node):
     sql = """
     insert into bucket_node_tbl(eventId, bucketIndex, lowerEdge, upperEdge, nodeCount)
-    values(%u, %u, %d, %d, %u)
+    values(%u, %d, %d, %d, %u)
     """ % (event_id, node.bucket_index, node.lower, node.upper, node.count)
     cursor.execute(sql)
     insert_id = self.db.insert_id()
@@ -80,6 +82,15 @@ class StatisticRequestHandler:
   def __init__(self):
     self.model = MysqlController()
     self.model.connect()
+    self.max_int = int(0x7fffffff)
+
+  def floatToInt(self, value):
+    if value == float('inf'):
+      return self.max_int
+    elif value == float('-inf'):
+      return -self.max_int
+    else:
+      return int(value)
 
   def submitNewStatistic(self, reporter, content):
     report = Report(reporter.ipv4)
@@ -94,7 +105,7 @@ class StatisticRequestHandler:
         if len(buckets_json) == 0:
           continue
         for (index, node_data) in buckets_json.items():
-          new_node = Node(int(index), int(float(node_data["lower"])), int(float(node_data["upper"])), int(node_data["count"]))
+          new_node = Node(int(index), self.floatToInt(float(node_data["lower"])), self.floatToInt(float(node_data["upper"])), int(node_data["count"]))
           new_event.nodes.append(new_node)
         event_list.append(new_event)
     except Exception as err:
